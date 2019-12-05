@@ -1,0 +1,1 @@
+puts IO.readlines("day1input.txt").sum{|x| x.to_i / 3 - 2}
