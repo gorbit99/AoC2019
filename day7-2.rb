@@ -1,4 +1,6 @@
-
+def loadCode(path)
+    return [0, IO.readlines(path).join.split(",").map(&:to_i)]
+end
 
 def getValue(code, instruction, position, argument)
     mode = (instruction / 10 ** (2 + position)) % 10
@@ -12,90 +14,100 @@ def getValue(code, instruction, position, argument)
     end
 end
 
-def loadCode(pathToCode)
-    return [0, IO.readlines(pathToCode).join.split(",").map(&:to_i)]
-end
-
-def run(code, input)
-    output = 0
+def run(code, inputQueue)
+    outputs = []
     ip = code[0]
     loop do
         inst = code[1][ip]
         case inst % 100
         when 1
-            a = getValue(code, inst, 0, code[1][ip + 1])
-            b = getValue(code, inst, 1, code[1][ip + 2])
-            code[1][code[ip + 3]] = a + b
+            a = getValue(code[1], inst, 0, code[1][ip + 1])
+            b = getValue(code[1], inst, 1, code[1][ip + 2])
+            code[1][code[1][ip + 3]] = a + b
             ip += 4
         when 2
-            a = getValue(code, inst, 0, code[1][ip + 1])
-            b = getValue(code, inst, 1, code[1][ip + 2])
-            code[1][code[ip + 3]] = a * b
+            a = getValue(code[1], inst, 0, code[1][ip + 1])
+            b = getValue(code[1], inst, 1, code[1][ip + 2])
+            code[1][code[1][ip + 3]] = a * b
             ip += 4
         when 3
-            if (ip != code[0])
-                return output;
-            c = input
-            code[1][code[ip + 1]] = c
-            ip += 2
+            if inputQueue.size == 0
+                code[0] = ip
+                return outputs
+            else
+                inp = inputQueue[0]
+                inputQueue = inputQueue[1..-1]
+                code[1][code[1][ip + 1]] = inp
+                ip += 2
+            end
         when 4
-            c = getValue(code, inst, 0, code[1][ip + 1])
-            output = c
+            c = getValue(code[1], inst, 0, code[1][ip + 1])
             ip += 2
+            outputs << c
         when 5
-            val = getValue(code, inst, 0, code[1][ip + 1])
-            pos = getValue(code, inst, 1, code[1][ip + 2])
+            val = getValue(code[1], inst, 0, code[1][ip + 1])
+            pos = getValue(code[1], inst, 1, code[1][ip + 2])
             if val != 0
                 ip = pos
             else
                 ip += 3
             end
         when 6
-            val = getValue(code, inst, 0, code[1][ip + 1])
-            pos = getValue(code, inst, 1, code[1][ip + 2])
+            val = getValue(code[1], inst, 0, code[1][ip + 1])
+            pos = getValue(code[1], inst, 1, code[1][ip + 2])
             if val == 0
                 ip = pos
             else
                 ip += 3
             end
         when 7
-            a = getValue(code, inst, 0, code[1][ip + 1])
-            b = getValue(code, inst, 1, code[1][ip + 2])
+            a = getValue(code[1], inst, 0, code[1][ip + 1])
+            b = getValue(code[1], inst, 1, code[1][ip + 2])
             val = a < b ? 1 : 0
-            code[1][code[ip + 3]] = val
+            code[1][code[1][ip + 3]] = val
             ip += 4
         when 8
-            a = getValue(code, inst, 0, code[1][ip + 1])
-            b = getValue(code, inst, 1, code[1][ip + 2])
+            a = getValue(code[1], inst, 0, code[1][ip + 1])
+            b = getValue(code[1], inst, 1, code[1][ip + 2])
             val = a == b ? 1 : 0
-            code[1][code[ip + 3]] = val
+            code[1][code[1][ip + 3]] = val
             ip += 4
         when 99
-            return -1
-            exit
+            return outputs + [nil]
         else
             abort "Invalid instruction!"
         end
     end
 end
 
-possible = [0,1,2,3,4]
+possible = [5, 6, 7, 8, 9]
 
-answers = []
+results = []
 
 possible.permutation.to_a.each do |perm|
-    lastOutputs = [0, 0, 0, 0, 0]
     codes = []
-    5.times do |i|
-        codes[i] = loadCode("day7code.txt")
+    5.times do
+        codes << loadCode("day7code.txt")
     end
-    p codes
-    while (lastOutputs[-1] != -1)
+    inputs = [[perm[0], 0], [perm[1]], [perm[2]], [perm[3]], [perm[4]]]
+    loop do
+        done = false
         5.times do |i|
-            id = perm[i]
-            inpId = i - 1 < 0 ? 4 : i - 1
-            lastOutputs[i] = run(codes[i], lastOutputs[inpId])
+            outputs = run(codes[i], inputs[i])
+            outId = i + 1 > 4 ? 0 : i + 1
+            inputs[i] = []
+            inputs[outId] += outputs
+            if i == 4 and outputs[-1].nil?
+                results << outputs[-2]
+                done = true
+                break
+            end
+        end
+        if done
+            break
         end
     end
 end
-puts answers.max
+
+results.sort!
+puts results
